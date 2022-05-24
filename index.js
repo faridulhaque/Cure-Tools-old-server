@@ -5,7 +5,6 @@ const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 5000;
 
-
 // using middleware
 
 app.use(express.json());
@@ -22,7 +21,10 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
+
+    const ordersCollection = client.db("cureTools").collection("orders");
     const toolsCollection = client.db("cureTools").collection("tools");
+
     app.get("/tools", async (req, res) => {
       const query = {};
       const cursor = toolsCollection.find(query);
@@ -31,10 +33,29 @@ async function run() {
     });
     app.get("/tool/:id", async (req, res) => {
       const id = req.params.id;
-      const query = {_id: ObjectId(id)};
+      const query = { _id: ObjectId(id) };
       const tool = await toolsCollection.findOne(query);
       res.send(tool);
     });
+    app.post("/orders", async (req, res) => {
+      const orders = req.body;
+      const result = await ordersCollection.insertOne(orders);
+      res.send(result);
+    });
+    app.get("/myOrders", async (req, res) => {
+      const email = req.query.email;
+
+      const query = { email: email };
+      const cursor = ordersCollection.find(query);
+      const orders = await cursor.toArray();
+      res.send(orders);
+    });
+    app.delete('/order/:id', (req, res)=>{
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const order = ordersCollection.deleteOne(query);
+      res.send(order);
+    })
   } finally {
   }
 }
