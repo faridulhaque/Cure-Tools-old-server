@@ -24,6 +24,7 @@ async function run() {
 
     const ordersCollection = client.db("cureTools").collection("orders");
     const toolsCollection = client.db("cureTools").collection("tools");
+    const usersCollection = client.db("cureTools").collection("users");
 
     app.get("/tools", async (req, res) => {
       const query = {};
@@ -55,6 +56,23 @@ async function run() {
       const query = { _id: ObjectId(id) };
       const order = ordersCollection.deleteOne(query);
       res.send(order);
+    })
+
+    // saving user data in db 
+
+    app.put("/user/:email", async (req, res)=>{
+      const email = req.params.email;
+      const user = req.body;
+      const query = {email: email}
+      const options = {upsert: true};
+      const info = {
+        $set: {
+          email: user.email,
+          name: user.name,
+        }
+      }
+      const result = await usersCollection.updateOne(query, info, options);
+      res.send(result);
     })
   } finally {
   }
