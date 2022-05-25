@@ -25,12 +25,21 @@ async function run() {
     const ordersCollection = client.db("cureTools").collection("orders");
     const toolsCollection = client.db("cureTools").collection("tools");
     const usersCollection = client.db("cureTools").collection("users");
+    const reviewsCollection = client.db("cureTools").collection("reviews");
 
     app.get("/tools", async (req, res) => {
       const query = {};
       const cursor = toolsCollection.find(query);
       const tools = await cursor.toArray();
       res.send(tools);
+    });
+
+    // getting reviews for reviews section in review page. 
+    app.get("/reviews", async (req, res) => {
+      const query = {};
+      const cursor = reviewsCollection.find(query);
+      const reviews = await cursor.toArray();
+      res.send(reviews);
     });
     app.get("/tool/:id", async (req, res) => {
       const id = req.params.id;
@@ -51,10 +60,10 @@ async function run() {
       const orders = await cursor.toArray();
       res.send(orders);
     });
-    app.delete('/order/:id', (req, res)=>{
+    app.delete('/order/:id', async (req, res)=>{
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
-      const order = ordersCollection.deleteOne(query);
+      const order = await ordersCollection.deleteOne(query);
       res.send(order);
     })
 
@@ -69,11 +78,40 @@ async function run() {
         $set: {
           email: user.email,
           name: user.name,
+          img: user.img,
         }
       }
       const result = await usersCollection.updateOne(query, info, options);
       res.send(result);
     })
+
+    //store reviews from the users to db
+    app.put("/review/:email", async (req, res)=>{
+      const email = req.params.email;
+      const user = req.body;
+      const query = {email: email}
+      const options = {upsert: true};
+      const info = {
+        $set: {
+          email: user.email,
+          name: user.name,
+          img: user.img,
+          review: user.review,
+          rating: user.rating,
+
+        }
+      }
+      const result = await reviewsCollection.updateOne(query, info, options);
+      res.send(result);
+    })
+    // getting single user for profile info
+    app.get("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const filter = {email: email};
+      const user = await usersCollection.findOne(filter);
+      res.send(user);
+    })
+
   } finally {
   }
 }
