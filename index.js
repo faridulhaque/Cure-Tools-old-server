@@ -34,7 +34,7 @@ async function run() {
       res.send(tools);
     });
 
-    // getting reviews for reviews section in review page. 
+    // getting reviews for reviews section in review page.
     app.get("/reviews", async (req, res) => {
       const query = {};
       const cursor = reviewsCollection.find(query);
@@ -52,6 +52,11 @@ async function run() {
       const result = await ordersCollection.insertOne(orders);
       res.send(result);
     });
+    app.post("/tools", async (req, res) => {
+      const tools = req.body;
+      const result = await toolsCollection.insertOne(tools);
+      res.send(result);
+    });
     app.get("/myOrders", async (req, res) => {
       const email = req.query.email;
 
@@ -60,37 +65,53 @@ async function run() {
       const orders = await cursor.toArray();
       res.send(orders);
     });
-    app.delete('/order/:id', async (req, res)=>{
+    app.delete("/order/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const order = await ordersCollection.deleteOne(query);
       res.send(order);
-    })
+    });
 
-    // saving user data in db 
+    // saving user data in db
 
-    app.put("/user/:email", async (req, res)=>{
+    app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
-      const query = {email: email}
-      const options = {upsert: true};
+      const query = { email: email };
+      const options = { upsert: true };
       const info = {
         $set: {
           email: user.email,
           name: user.name,
           img: user.img,
-        }
-      }
+          address: user.address,
+          phone: user.phone,
+          
+        },
+      };
       const result = await usersCollection.updateOne(query, info, options);
       res.send(result);
-    })
+    });
+    // making an admin
+    app.put("user/admin/:email", async (req, res) => {
+      const email = req.params.email;
+
+      const filter = { email: email };
+
+      const info = {
+        $set: { role: "admin" },
+      };
+      const result = await usersCollection.updateOne(filter, info);
+      res.send(result);
+    });
 
     //store reviews from the users to db
-    app.put("/review/:email", async (req, res)=>{
+    app.put("/review/:email", async (req, res) => {
       const email = req.params.email;
+      console.log(email)
       const user = req.body;
-      const query = {email: email}
-      const options = {upsert: true};
+      const query = { email: email };
+      const options = { upsert: true };
       const info = {
         $set: {
           email: user.email,
@@ -98,20 +119,26 @@ async function run() {
           img: user.img,
           review: user.review,
           rating: user.rating,
-
-        }
-      }
+        },
+      };
       const result = await reviewsCollection.updateOne(query, info, options);
       res.send(result);
-    })
+    });
+    //getting all users
+    app.get("/users", async (req, res) => {
+      const query = {};
+      const cursor = usersCollection.find(query);
+      const users = await cursor.toArray();
+      res.send(users);
+    });
+
     // getting single user for profile info
     app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
-      const filter = {email: email};
+      const filter = { email: email };
       const user = await usersCollection.findOne(filter);
       res.send(user);
-    })
-
+    });
   } finally {
   }
 }
