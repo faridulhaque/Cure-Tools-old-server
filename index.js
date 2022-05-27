@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 5000;
@@ -26,6 +27,25 @@ async function run() {
     const toolsCollection = client.db("cureTools").collection("tools");
     const usersCollection = client.db("cureTools").collection("users");
     const reviewsCollection = client.db("cureTools").collection("reviews");
+    // payment setup
+    // app.post("/create-payment-intent", async (req, res) => {
+    //   const items = req.body;
+    //   const price = items.price;
+    //   const amount = price*100;
+
+    //   // Create a PaymentIntent with the order amount and currency
+    //   const paymentIntent = await stripe.paymentIntents.create({
+    //     amount: amount,
+    //     currency: "usd",
+    //     automatic_payment_methods: {
+    //       enabled: true,
+    //     },
+    //   });
+
+    //   res.send({
+    //     clientSecret: paymentIntent.client_secret,
+    //   });
+    // });
 
     app.get("/tools", async (req, res) => {
       const query = {};
@@ -46,6 +66,12 @@ async function run() {
       const query = { _id: ObjectId(id) };
       const tool = await toolsCollection.findOne(query);
       res.send(tool);
+    });
+    app.get("/order/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const order = await ordersCollection.findOne(query);
+      res.send(order);
     });
     app.post("/orders", async (req, res) => {
       const orders = req.body;
@@ -92,7 +118,6 @@ async function run() {
           img: user.img,
           address: user.address,
           phone: user.phone,
-          
         },
       };
       const result = await usersCollection.updateOne(query, info, options);
@@ -114,7 +139,7 @@ async function run() {
     //store reviews from the users to db
     app.put("/review/:email", async (req, res) => {
       const email = req.params.email;
-      console.log(email)
+      console.log(email);
       const user = req.body;
       const query = { email: email };
       const options = { upsert: true };
@@ -150,6 +175,13 @@ async function run() {
       const filter = { email: email };
       const user = await usersCollection.findOne(filter);
       res.send(user);
+    });
+    app.get("/admins", async (req, res) => {
+      
+      const filter = { role: 'admin' };
+      const cursor = usersCollection.find(filter);
+      const admins = await cursor.toArray();
+      res.send(admins);
     });
   } finally {
   }
