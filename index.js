@@ -71,6 +71,12 @@ async function run() {
       const order = await ordersCollection.deleteOne(query);
       res.send(order);
     });
+    app.delete("/tool/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const tool = await toolsCollection.deleteOne(query);
+      res.send(tool);
+    });
 
     // saving user data in db
 
@@ -95,7 +101,7 @@ async function run() {
     // making an admin
     app.put("user/admin/:email", async (req, res) => {
       const email = req.params.email;
-
+      console.log(email);
       const filter = { email: email };
 
       const info = {
@@ -130,6 +136,12 @@ async function run() {
       const cursor = usersCollection.find(query);
       const users = await cursor.toArray();
       res.send(users);
+    });
+    app.get("/orders", async (req, res) => {
+      const query = {};
+      const cursor = ordersCollection.find(query);
+      const orders = await cursor.toArray();
+      res.send(orders);
     });
 
     // getting single user for profile info
