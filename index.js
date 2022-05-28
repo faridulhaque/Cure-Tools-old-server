@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const jwt = require('jsonwebtoken');
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -28,25 +29,21 @@ async function run() {
     const usersCollection = client.db("cureTools").collection("users");
     const reviewsCollection = client.db("cureTools").collection("reviews");
     // payment setup
-    // app.post("/create-payment-intent", async (req, res) => {
-    //   const items = req.body;
-    //   const price = items.price;
-    //   const amount = price*100;
+    app.post("/create-payment-intent", async (req, res) => {
+      const items = req.body;
+      const price = parseFloat(items.price);
 
-    //   // Create a PaymentIntent with the order amount and currency
-    //   const paymentIntent = await stripe.paymentIntents.create({
-    //     amount: amount,
-    //     currency: "usd",
-    //     automatic_payment_methods: {
-    //       enabled: true,
-    //     },
-    //   });
+      const amount = price*100;
 
-    //   res.send({
-    //     clientSecret: paymentIntent.client_secret,
-    //   });
-    // });
-
+      // Create a PaymentIntent with the order amount and currency
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount : amount,
+        currency: 'usd',
+        payment_method_types:['card']
+      });
+      console.log(paymentIntent.client_secret);
+      res.send({clientSecret: paymentIntent.client_secret})
+    });
     app.get("/tools", async (req, res) => {
       const query = {};
       const cursor = toolsCollection.find(query);
@@ -103,6 +100,12 @@ async function run() {
       const tool = await toolsCollection.deleteOne(query);
       res.send(tool);
     });
+    app.delete("/user/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await usersCollection.deleteOne(query);
+      res.send(result);
+    });
 
     // saving user data in db
 
@@ -124,15 +127,45 @@ async function run() {
       res.send(result);
     });
     // making an admin
-    app.put("user/admin/:email", async (req, res) => {
-      const email = req.params.email;
-      console.log(email);
-      const filter = { email: email };
+    app.put("/user/admin/:id", async (req, res) => {
+      const id = req.params.id;
 
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
       const info = {
         $set: { role: "admin" },
       };
-      const result = await usersCollection.updateOne(filter, info);
+      const result = await usersCollection.updateOne(filter, info, options);
+      res.send(result);
+    });
+    // payment confirmation
+
+    app.put("/order/payment/:id", async (req, res) => {
+      const id = req.params.id;
+      const bodyData = req.body;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const info = {
+        $set: {
+          transaction: bodyData.transaction,
+          payment: bodyData.payment
+        },
+      };
+      const result = await ordersCollection.updateOne(filter, info, options);
+      res.send(result);
+    });
+    app.put("/order/shipment/:id", async (req, res) => {
+      const id = req.params.id;
+      const bodyData = req.body;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const info = {
+        $set: {
+          
+          shipment: bodyData.shipment
+        },
+      };
+      const result = await ordersCollection.updateOne(filter, info, options);
       res.send(result);
     });
 
@@ -177,8 +210,7 @@ async function run() {
       res.send(user);
     });
     app.get("/admins", async (req, res) => {
-      
-      const filter = { role: 'admin' };
+      const filter = { role: "admin" };
       const cursor = usersCollection.find(filter);
       const admins = await cursor.toArray();
       res.send(admins);
