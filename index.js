@@ -88,18 +88,21 @@ async function run() {
       const orders = await cursor.toArray();
       res.send(orders);
     });
+    // deleting item from orders
     app.delete("/order/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const order = await ordersCollection.deleteOne(query);
       res.send(order);
     });
+    // deleting product
     app.delete("/tool/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const tool = await toolsCollection.deleteOne(query);
       res.send(tool);
     });
+    // delete an user by admin from manage users
     app.delete("/user/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
