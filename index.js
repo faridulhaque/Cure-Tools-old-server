@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -22,17 +22,17 @@ const client = new MongoClient(uri, {
 
 function verifyJWT(req, res, next) {
   const receivedToken = req.headers.authorization;
-  if(!receivedToken){
-    return res.status(401).send({ message: 'unauthorized access'});
+  if (!receivedToken) {
+    return res.status(401).send({ message: "unauthorized access" });
   }
-  const token = receivedToken.split(' ')[1];
-  jwt.verify(token, '12345678', function(err, decoded){
-    if(err){
-      return res.status(403).send({ message: 'forbidden access'})
+  const token = receivedToken.split(" ")[1];
+  jwt.verify(token, "12345678", function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "forbidden access" });
     }
     req.decoded = decoded;
     next();
-  })
+  });
 }
 
 async function run() {
@@ -48,16 +48,16 @@ async function run() {
       const items = req.body;
       const price = parseFloat(items.price);
 
-      const amount = price*100;
+      const amount = price * 100;
 
       // Create a PaymentIntent with the order amount and currency
       const paymentIntent = await stripe.paymentIntents.create({
-        amount : amount,
-        currency: 'usd',
-        payment_method_types:['card']
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
       });
       console.log(paymentIntent.client_secret);
-      res.send({clientSecret: paymentIntent.client_secret})
+      res.send({ clientSecret: paymentIntent.client_secret });
     });
     app.get("/tools", async (req, res) => {
       const query = {};
@@ -103,6 +103,14 @@ async function run() {
       const orders = await cursor.toArray();
       res.send(orders);
     });
+    // find an admin
+    app.get("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = await usersCollection.findOne({ email: email });
+      const isAdmin = user.role === "admin";
+      res.send({ admin: isAdmin });
+    });
+
     // deleting item from orders
     app.delete("/order/:id", async (req, res) => {
       const id = req.params.id;
@@ -142,11 +150,11 @@ async function run() {
         },
       };
       const result = await usersCollection.updateOne(query, info, options);
-      const token = jwt.sign({email: email}, '12345678',{expiresIn: '1d'})
-      console.log(token)
-      res.send({result, token});
+      const token = jwt.sign({ email: email }, "12345678", { expiresIn: "1d" });
+      console.log(token);
+      res.send({ result, token });
     });
-    
+
     // making an admin
     app.put("/user/admin/:id", async (req, res) => {
       const id = req.params.id;
@@ -169,7 +177,7 @@ async function run() {
       const info = {
         $set: {
           transaction: bodyData.transaction,
-          payment: bodyData.payment
+          payment: bodyData.payment,
         },
       };
       const result = await ordersCollection.updateOne(filter, info, options);
@@ -182,8 +190,7 @@ async function run() {
       const options = { upsert: true };
       const info = {
         $set: {
-          
-          shipment: bodyData.shipment
+          shipment: bodyData.shipment,
         },
       };
       const result = await ordersCollection.updateOne(filter, info, options);
@@ -193,7 +200,7 @@ async function run() {
     //store reviews from the users to db
     app.put("/review/:email", async (req, res) => {
       const email = req.params.email;
-      
+
       const user = req.body;
       const query = { email: email };
       const options = { upsert: true };
@@ -207,11 +214,11 @@ async function run() {
         },
       };
       const result = await reviewsCollection.updateOne(query, info, options);
-      
+
       res.send(result);
     });
     //getting all users
-    app.get("/users", verifyJWT, async (req, res) => {
+    app.get("/users", async (req, res) => {
       const query = {};
       const cursor = usersCollection.find(query);
       const users = await cursor.toArray();
