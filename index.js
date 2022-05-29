@@ -127,8 +127,11 @@ async function run() {
         },
       };
       const result = await usersCollection.updateOne(query, info, options);
-      res.send(result);
+      const token = jwt.sign({email: email}, '12345678',{expiresIn: '1d'})
+      console.log(token)
+      res.send({result, token});
     });
+    
     // making an admin
     app.put("/user/admin/:id", async (req, res) => {
       const id = req.params.id;
@@ -175,7 +178,7 @@ async function run() {
     //store reviews from the users to db
     app.put("/review/:email", async (req, res) => {
       const email = req.params.email;
-      console.log(email);
+      
       const user = req.body;
       const query = { email: email };
       const options = { upsert: true };
@@ -189,6 +192,7 @@ async function run() {
         },
       };
       const result = await reviewsCollection.updateOne(query, info, options);
+      
       res.send(result);
     });
     //getting all users
