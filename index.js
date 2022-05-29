@@ -20,6 +20,21 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+function verifyJWT(req, res, next) {
+  const receivedToken = req.headers.authorization;
+  if(!receivedToken){
+    return res.status(401).send({ message: 'unauthorized access'});
+  }
+  const token = receivedToken.split(' ')[1];
+  jwt.verify(token, '12345678', function(err, decoded){
+    if(err){
+      return res.status(403).send({ message: 'forbidden access'})
+    }
+    req.decoded = decoded;
+    next();
+  })
+}
+
 async function run() {
   try {
     await client.connect();
@@ -196,7 +211,7 @@ async function run() {
       res.send(result);
     });
     //getting all users
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyJWT, async (req, res) => {
       const query = {};
       const cursor = usersCollection.find(query);
       const users = await cursor.toArray();
